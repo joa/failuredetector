@@ -41,10 +41,12 @@ func (h heartbeatHistory) stdDeviation() float64 {
 // Uses copy on write semantics to ensure heartbeatHistory is persistent.
 func (h heartbeatHistory) append(interval uint64) heartbeatHistory {
 	var src []uint64
+	var droppedInterval uint64
 
 	if uint(len(h.intervals)) < h.maxSampleSize {
 		src = h.intervals
 	} else {
+		droppedInterval = h.intervals[0]
 		src = h.intervals[1:]
 	}
 
@@ -55,6 +57,6 @@ func (h heartbeatHistory) append(interval uint64) heartbeatHistory {
 	return heartbeatHistory{
 		maxSampleSize:      h.maxSampleSize,
 		intervals:          dst,
-		intervalSum:        h.intervalSum + interval,
-		squaredIntervalSum: h.squaredIntervalSum + (interval * interval)}
+		intervalSum:        h.intervalSum - droppedInterval + interval,
+		squaredIntervalSum: h.squaredIntervalSum - (droppedInterval * droppedInterval) + (interval * interval)}
 }
