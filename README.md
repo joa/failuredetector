@@ -1,5 +1,7 @@
-Port of Akka's excellent implementation of the [PhiAccuralFailureDetector](https://github.com/akka/akka/blob/master/akka-remote/src/main/scala/akka/remote/PhiAccrualFailureDetector.scala) as 
-proposed by [Hayashibara et al.](http://www.jaist.ac.jp/~defago/files/pdf/IS_RR_2004_010.pdf)
+[![Build Status](https://api.travis-ci.org/joa/failuredetector.svg)](http://travis-ci.org/joa/failuredetector) [![GoDoc](https://godoc.org/github.com/joa/failuredetector?status.svg)](http://godoc.org/github.com/joa/failuredetector)
+
+This is a port of [Akka](https://akka.io)'s excellent implementation of the [PhiAccuralFailureDetector](https://github.com/akka/akka/blob/master/akka-remote/src/main/scala/akka/remote/PhiAccrualFailureDetector.scala) as 
+proposed by [Hayashibara et al.](http://fubica.lsd.ufcg.edu.br/hp/cursos/cfsc/papers/hayashibara04theaccrual.pdf)
 
 ### Usage
 ```go
