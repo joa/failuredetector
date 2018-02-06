@@ -1,12 +1,11 @@
 package failuredetector
 
 import (
-	"sync"
 	"testing"
 	"time"
 )
 
-func createFailureDetector() *PhiAccuralFailureDetector {
+func createFailureDetector(c clock) *PhiAccuralFailureDetector {
 	res, err := New(
 		8.0,
 		1000,
@@ -19,60 +18,40 @@ func createFailureDetector() *PhiAccuralFailureDetector {
 		panic(err)
 	}
 
+	res.clock = c
+
 	return res
 }
 
-func TestStress(t *testing.T) {
-	// this is not a unit test - just verify that the history and atomic handling
-	// isn't totally bonkers
+func TestNodeIsAvailableAfterASeriesOfSuccessfulHeartbeats(t *testing.T) {
+	timeInterval := []int{0, 1000, 100, 100}
+	fd := createFailureDetector(newFakeClock(timeInterval))
 
-	d := createFailureDetector()
-	var wg sync.WaitGroup
+	fd.Heartbeat()
+	fd.Heartbeat()
+	fd.Heartbeat()
 
-	// ensure we're monitoring so the test is never flaky
-	d.Heartbeat()
-
-	if !verifyMonitoringAndAvailable(t, d) {
-		return
+	if !fd.IsAvailable() {
+		t.Error("detector should report resource available")
 	}
-
-	for i := 0; i < 8; i++ {
-		wg.Add(1)
-		go func() {
-			for i := 0; i < 1000; i++ {
-				d.Heartbeat()
-			}
-			wg.Done()
-		}()
-	}
-
-	for i := 0; i < 8; i++ {
-		wg.Add(1)
-		go func() {
-			for i := 0; i < 1000; i++ {
-				if !verifyMonitoringAndAvailable(t, d) {
-					break
-				}
-			}
-			wg.Done()
-		}()
-	}
-
-	wg.Wait()
-
-	verifyMonitoringAndAvailable(t, d)
 }
 
-func verifyMonitoringAndAvailable(t *testing.T, d *PhiAccuralFailureDetector) bool {
-	if !d.IsAvailable() {
+func TestNodeMarkedDeadAfterHeartbeatsAreMissed(t *testing.T) {
+	timeInterval := []int{0, 1000, 100, 100, 4000, 3000}
+	fd := createFailureDetector(newFakeClock(timeInterval))
+	fd.threshold = 3.0
+
+	fd.Heartbeat() //0
+	fd.Heartbeat() //1000
+	fd.Heartbeat() //1100
+
+	if !fd.IsAvailable() { //1200
 		t.Error("detector should report resource available")
-		return false
 	}
 
-	if !d.IsMonitoring() {
-		t.Error("detector should be monitoring")
-		return false
-	}
+	fd.clock() //5200, but unrelated resource
 
-	return true
+	if fd.IsAvailable() { //1200
+		t.Error("detector shouldn't report resource available")
+	}
 }

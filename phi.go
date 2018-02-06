@@ -59,6 +59,7 @@ type PhiAccuralFailureDetector struct {
 	acceptableHeartbeatPauseMS uint64
 	minStdDeviationMS          uint64
 	state                      *state
+	clock                      clock
 }
 
 // state of the PhiAccuralFailureDetector
@@ -109,6 +110,7 @@ func New(
 		acceptableHeartbeatPauseMS: toMillis(acceptableHeartbeatPause),
 		minStdDeviationMS:          toMillis(minStdDeviation),
 		state:                      &state{history: firstHeartbeat, timestamp: nil},
+		clock:                      defaultClock,
 	}, nil
 }
 
@@ -136,7 +138,7 @@ func (d *PhiAccuralFailureDetector) casState(old, new *state) bool {
 
 // IsAvailable returns true if the resource is considered to be up and healthy; false otherwise.
 func (d *PhiAccuralFailureDetector) IsAvailable() bool {
-	return d.isAvailableAt(time.Now())
+	return d.isAvailableAt(d.clock())
 }
 
 func (d *PhiAccuralFailureDetector) isAvailableAt(time time.Time) bool {
@@ -154,7 +156,7 @@ func (d *PhiAccuralFailureDetector) IsMonitoring() bool {
 // This causes the detector to update its state.
 func (d *PhiAccuralFailureDetector) Heartbeat() {
 	for {
-		timestamp := time.Now()
+		timestamp := d.clock()
 		oldState := d.loadState()
 
 		var newHistory heartbeatHistory
@@ -190,7 +192,7 @@ func (d *PhiAccuralFailureDetector) Heartbeat() {
 
 // Phi (the suspicion level) of the accrual failure detector.
 func (d *PhiAccuralFailureDetector) Phi() float64 {
-	return d.phiAt(time.Now())
+	return d.phiAt(d.clock())
 }
 
 // phiAt a given time of the accrual failure detector.
